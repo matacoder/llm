@@ -67,6 +67,7 @@ services:
       - CONCURRENCY=2
       - RETRY_MAX=5
       - RETRY_BASE_DELAY=1.0
+      - CLEANUP_INTERVAL=300  # Интервал очистки удаленных файлов (секунды)
     depends_on:
       - open-webui
     networks:

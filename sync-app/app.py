@@ -286,6 +286,160 @@ def worker():
         finally:
             q.task_done()
 
+def get_local_files():
+    """Получить список локальных файлов с их хешами"""
+    local_files = {}
+
+    for root, dirs, files in os.walk(WATCH_DIR):
+        for name in files:
+            p = os.path.join(root, name)
+
+            # Проверка фильтров
+            if EXCLUDE and glob_match(p, EXCLUDE):
+                continue
+            if INCLUDE and not glob_match(p, INCLUDE):
+                continue
+
+            # Вычисляем хеш файла
+            digest = sha256_file(p)
+            if digest:
+                local_files[p] = {
+                    'path': p,
+                    'name': os.path.basename(p),
+                    'sha256': digest
+                }
+
+    return local_files
+
+def get_collection_files():
+    """Получить список файлов из коллекции Knowledge"""
+    if not KNOW_ID or not TOKEN:
+        return {}
+
+    try:
+        headers = {"Authorization": f"Bearer {TOKEN}"}
+        get_url = f"{BASE}/api/v1/knowledge/{KNOW_ID}"
+        r = requests.get(get_url, headers=headers, timeout=30)
+
+        if r.status_code != 200:
+            log(f"Не удалось получить список файлов из коллекции: {r.status_code}", "ERROR")
+            return {}
+
+        knowledge_data = r.json()
+        files = knowledge_data.get("files", [])
+
+        # Создаем словарь: file_id -> file_info
+        collection_files = {}
+        for f in files:
+            file_id = f.get("id")
+            file_hash = f.get("hash")
+            file_name = f.get("meta", {}).get("name", "")
+
+            if file_id:
+                collection_files[file_id] = {
+                    'id': file_id,
+                    'hash': file_hash,
+                    'name': file_name
+                }
+
+        return collection_files
+
+    except Exception as e:
+        log(f"Ошибка при получении списка файлов из коллекции: {e}", "ERROR")
+        return {}
+
+def cleanup_deleted_files():
+    """Удалить из коллекции файлы, которых нет локально"""
+    if not KNOW_ID or not TOKEN:
+        return
+
+    try:
+        log("Проверка на удаленные файлы...", "DEBUG")
+
+        # Получаем локальные файлы и их хеши
+        local_files = get_local_files()
+        local_hashes = {info['sha256'] for info in local_files.values()}
+
+        # Получаем файлы из коллекции
+        collection_files = get_collection_files()
+
+        if not collection_files:
+            log("Коллекция пуста или недоступна", "DEBUG")
+            return
+
+        # Находим файлы, которые есть в коллекции, но нет локально
+        files_to_remove = []
+        for file_id, file_info in collection_files.items():
+            file_hash = file_info['hash']
+            file_name = file_info['name']
+
+            # Если хеша файла нет среди локальных - удаляем
+            if file_hash not in local_hashes:
+                files_to_remove.append(file_id)
+                log(f"Файл для удаления: {file_name} (нет локально)", "INFO")
+
+        if not files_to_remove:
+            log("Нет файлов для удаления", "DEBUG")
+            return
+
+        log(f"Найдено {len(files_to_remove)} файл(ов) для удаления из коллекции", "INFO")
+
+        # Получаем текущий список file_ids
+        headers = {"Authorization": f"Bearer {TOKEN}"}
+        get_url = f"{BASE}/api/v1/knowledge/{KNOW_ID}"
+        r = requests.get(get_url, headers=headers, timeout=30)
+
+        if r.status_code != 200:
+            log(f"Не удалось получить коллекцию для обновления: {r.status_code}", "ERROR")
+            return
+
+        knowledge_data = r.json()
+        current_file_ids = knowledge_data.get("data", {}).get("file_ids", [])
+
+        # Удаляем файлы из списка
+        updated_file_ids = [fid for fid in current_file_ids if fid not in files_to_remove]
+
+        # Обновляем коллекцию
+        update_url = f"{BASE}/api/v1/knowledge/{KNOW_ID}/update"
+        body = {
+            "name": knowledge_data.get("name"),
+            "description": knowledge_data.get("description", ""),
+            "data": {"file_ids": updated_file_ids}
+        }
+
+        r2 = post_with_retry(
+            update_url,
+            headers={**headers, "Content-Type": "application/json"},
+            data=json.dumps(body)
+        )
+
+        if not r2 or r2.status_code >= 400:
+            log(f"Не удалось обновить коллекцию после удаления: {r2.status_code if r2 else 'no response'}", "ERROR")
+            return
+
+        # Удаляем записи из SQLite
+        for file_id in files_to_remove:
+            file_name = collection_files[file_id]['name']
+            conn.execute("DELETE FROM files WHERE owui_file_id=?", (file_id,))
+            log(f"Удален из коллекции: {file_name}", "INFO")
+
+        conn.commit()
+        log(f"Успешно удалено {len(files_to_remove)} файл(ов) из коллекции", "INFO")
+
+    except Exception as e:
+        log(f"Ошибка при очистке удаленных файлов: {e}", "ERROR")
+
+def cleanup_worker():
+    """Периодический запуск очистки удаленных файлов"""
+    cleanup_interval = int(os.environ.get("CLEANUP_INTERVAL", "300"))  # 5 минут по умолчанию
+
+    while True:
+        try:
+            time.sleep(cleanup_interval)
+            cleanup_deleted_files()
+        except Exception as e:
+            log(f"Ошибка в cleanup_worker: {e}", "ERROR")
+
 def main():
     """Основная функция"""
     log("=== Запуск синхронизации документов ===")
@@ -312,6 +466,11 @@ def main():
     for _ in range(CONCURRENCY):
         threading.Thread(target=worker, daemon=True).start()
 
+    # Запуск потока периодической очистки
+    cleanup_interval = int(os.environ.get("CLEANUP_INTERVAL", "300"))
+    log(f"Запуск потока очистки (интервал: {cleanup_interval}с)")
+    threading.Thread(target=cleanup_worker, daemon=True).start()
+
     # Первичная синхронизация существующих файлов
     log("Выполнение первичной синхронизации существующих файлов...")
     for root, dirs, files in os.walk(WATCH_DIR):
@@ -322,6 +481,13 @@ def main():
             if INCLUDE and not glob_match(p, INCLUDE):
                 continue
             q.put(p)
+
+    # Ждем завершения первичной синхронизации
+    q.join()
+
+    # Первичная очистка удаленных файлов
+    log("Выполнение первичной очистки удаленных файлов из коллекции...")
+    cleanup_deleted_files()
 
     # Запуск наблюдателя за файловой системой
     log("Запуск наблюдателя за изменениями файлов...")
