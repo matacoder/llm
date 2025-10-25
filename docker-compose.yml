@@ -37,9 +37,12 @@ services:
       - ENABLE_RAG_WEB_SEARCH=false  # Отключаем поиск в интернете
       - ENABLE_RAG_LOCAL_WEB_FETCH=false
       - RAG_EMBEDDING_ENGINE=ollama  # Использовать Ollama для эмбеддингов
-      - RAG_EMBEDDING_MODEL=nomic-embed-text  # Модель для эмбеддингов документов
-      - CHUNK_SIZE=1000
-      - CHUNK_OVERLAP=100
+      - RAG_EMBEDDING_MODEL=mxbai-embed-large  # Лучшая модель для русского языка
+      - CHUNK_SIZE=400  # Оптимальный размер для инструкций
+      - CHUNK_OVERLAP=100  # Перекрытие для сохранения контекста
+      - RAG_TOP_K=10  # Больше кандидатов для лучшего поиска
+      - PDF_EXTRACT_IMAGES=false  # Отключаем извлечение изображений для скорости
+      - ENABLE_RAG_HYBRID_SEARCH=true  # Комбинация векторного и полнотекстового поиска
     depends_on:
       - ollama
     networks:
