@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Ollama - движок для запуска LLM моделей
   ollama:
@@ -38,11 +36,39 @@ services:
       - WEBUI_AUTH=true  # Включаем аутентификацию
       - ENABLE_RAG_WEB_SEARCH=false  # Отключаем поиск в интернете
       - ENABLE_RAG_LOCAL_WEB_FETCH=false
+      - RAG_EMBEDDING_ENGINE=ollama  # Использовать Ollama для эмбеддингов
       - RAG_EMBEDDING_MODEL=nomic-embed-text  # Модель для эмбеддингов документов
       - CHUNK_SIZE=1000
       - CHUNK_OVERLAP=100
     depends_on:
       - ollama
+    networks:
+      - llm-network
+
+  # RAG Sync - автоматическая синхронизация документов
+  rag-sync:
+    image: python:3.12-slim
+    container_name: rag-sync
+    restart: unless-stopped
+    volumes:
+      - ./sync-app:/app
+      - ./documents:/data/docs:ro  # Папка для мониторинга (только чтение)
+      - ./data/sync-state:/data/state  # БД для отслеживания состояния
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt && python app.py"
+    environment:
+      - OWUI_BASE_URL=http://open-webui:8080
+      - OWUI_TOKEN=${OWUI_TOKEN}
+      - OWUI_KNOWLEDGE_ID=${OWUI_KNOWLEDGE_ID}
+      - WATCH_DIR=/data/docs
+      - INCLUDE_GLOBS=*.pdf,*.docx,*.md,*.txt,*.doc,*.odt,*.rtf
+      - EXCLUDE_GLOBS=*.tmp,~$$*,*.part
+      - CONCURRENCY=2
+      - RETRY_MAX=5
+      - RETRY_BASE_DELAY=1.0
+    depends_on:
+      - open-webui
     networks:
       - llm-network
 

@@ -1,0 +1,4 @@
+watchdog==4.0.1
+requests==2.32.3
+python-dotenv==1.0.1
+sqlite-utils==3.36
