@@ -36,13 +36,18 @@ services:
       - WEBUI_AUTH=true  # Включаем аутентификацию
       - ENABLE_RAG_WEB_SEARCH=false  # Отключаем поиск в интернете
       - ENABLE_RAG_LOCAL_WEB_FETCH=false
+      # ВАЖНО: Настройки RAG ниже работают ТОЛЬКО при первом запуске!
+      # После первого запуска меняйте их через веб-интерфейс:
+      # Settings → Admin Settings → Documents
       - RAG_EMBEDDING_ENGINE=ollama  # Использовать Ollama для эмбеддингов
       - RAG_EMBEDDING_MODEL=mxbai-embed-large  # Лучшая модель для русского языка
-      - CHUNK_SIZE=400  # Оптимальный размер для инструкций
-      - CHUNK_OVERLAP=100  # Перекрытие для сохранения контекста
-      - RAG_TOP_K=10  # Больше кандидатов для лучшего поиска
+      - CHUNK_SIZE=250  # Размер чанков (рекомендуется 200-250 для точности)
+      - CHUNK_OVERLAP=50  # Перекрытие чанков (рекомендуется 40-50)
+      - RAG_TOP_K=15  # Количество лучших чанков для LLM
       - PDF_EXTRACT_IMAGES=false  # Отключаем извлечение изображений для скорости
       - ENABLE_RAG_HYBRID_SEARCH=true  # Комбинация векторного и полнотекстового поиска
+      - RAG_RELEVANCE_THRESHOLD=0.0  # Не фильтровать результаты по релевантности
+      - CONTENT_EXTRACTION_ENGINE=tika  # Лучшее извлечение текста из PDF
     depends_on:
       - ollama
     networks:
