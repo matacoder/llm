@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # Ollama - движок для запуска LLM моделей
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama  # Именованный volume для надежности
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - llm-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Open WebUI - веб-интерфейс как ChatGPT
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"  # Доступен на http://localhost:3000
+    volumes:
+      - ./data/open-webui:/app/backend/data
+      - ./documents:/app/backend/data/docs  # Папка для документов
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_AUTH=true  # Включаем аутентификацию
+      - ENABLE_RAG_WEB_SEARCH=false  # Отключаем поиск в интернете
+      - ENABLE_RAG_LOCAL_WEB_FETCH=false
+      - RAG_EMBEDDING_MODEL=nomic-embed-text  # Модель для эмбеддингов документов
+      - CHUNK_SIZE=1000
+      - CHUNK_OVERLAP=100
+    depends_on:
+      - ollama
+    networks:
+      - llm-network
+
+networks:
+  llm-network:
+    driver: bridge
+
+volumes:
+  ollama_data:  # Именованный volume для данных Ollama (модели сохраняются автоматически)
+    driver: local

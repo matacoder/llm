@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose:*)",
+      "Bash(docker exec:*)",
+      "Bash(nvidia-smi:*)",
+      "Bash(docker run:*)",
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "Bash(git add:*)",
+      "Bash(ls:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
