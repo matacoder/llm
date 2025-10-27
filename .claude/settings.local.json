@@ -24,7 +24,8 @@
       "Read(//media/denis/**)",
       "Bash(test -f:*)",
       "Bash(find:*)",
-      "Bash(docker-compose build:*)"
+      "Bash(docker-compose build:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []

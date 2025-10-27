@@ -12,6 +12,7 @@ urlpatterns = [
     path('patients/<int:patient_id>/edit/', views.patient_update, name='patient_update'),
 
     # Медицинские карты
+    path('records/', views.records_table, name='records_table'),
     path('patients/<int:patient_id>/records/create/', views.medical_record_create, name='medical_record_create'),
     path('records/<int:record_id>/', views.medical_record_detail, name='medical_record_detail'),
     path('records/<int:record_id>/edit/', views.medical_record_update, name='medical_record_update'),

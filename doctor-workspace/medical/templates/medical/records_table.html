@@ -1,0 +1,197 @@
+{% extends 'medical/base.html' %}
+
+{% block title %}Все медицинские карты{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-folder2-open"></i>
+                    Все медицинские карты
+                </h4>
+                <span class="badge bg-light text-primary">Всего записей: {{ total_records }}</span>
+            </div>
+            <div class="card-body">
+                {% if records %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped" id="recordsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 5%;">ID</th>
+                                    <th style="width: 20%;">Пациент</th>
+                                    <th style="width: 12%;">Дата приема</th>
+                                    <th style="width: 25%;">Диагноз</th>
+                                    <th style="width: 10%;">МКБ-10</th>
+                                    <th style="width: 15%;">Врач</th>
+                                    <th style="width: 8%;" class="text-center">AI проверка</th>
+                                    <th style="width: 5%;" class="text-center">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in records %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ record.id }}</span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'patient_detail' record.patient.id %}" class="text-decoration-none">
+                                            <i class="bi bi-person"></i>
+                                            {{ record.patient.full_name }}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ record.patient.gender|yesno:"М,Ж" }},
+                                            {{ record.patient.birth_date|date:"d.m.Y" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <i class="bi bi-calendar3"></i>
+                                        {{ record.visit_date|date:"d.m.Y" }}
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock"></i>
+                                            {{ record.visit_date|date:"H:i" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <strong>{{ record.preliminary_diagnosis|truncatewords:8 }}</strong>
+                                        {% if record.final_diagnosis %}
+                                            <br>
+                                            <small class="text-success">
+                                                <i class="bi bi-check-circle"></i>
+                                                Финальный: {{ record.final_diagnosis|truncatewords:6 }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ record.icd10_code }}</span>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            <i class="bi bi-person-badge"></i>
+                                            {{ record.doctor.full_name }}
+                                        </small>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if record.ai_check_performed %}
+                                            <span class="badge bg-success" title="Проверка выполнена {{ record.ai_check_timestamp|date:'d.m.Y H:i' }}">
+                                                <i class="bi bi-check-circle-fill"></i> Да
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-x-circle"></i> Нет
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'medical_record_detail' record.id %}"
+                                           class="btn btn-sm btn-outline-primary"
+                                           title="Просмотр">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Статистика -->
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <h5 class="text-primary">{{ total_records }}</h5>
+                                <small class="text-muted">Всего записей</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 class="text-success">{{ total_records }}</h5>
+                                <small class="text-muted">На текущей странице</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 class="text-info">{{ checked_records }}</h5>
+                                <small class="text-muted">С AI проверкой</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 class="text-warning">{{ unique_patients }}</h5>
+                                <small class="text-muted">Уникальных пациентов</small>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-info-circle"></i>
+                        Медицинские записи отсутствуют.
+                        <a href="{% url 'patient_list' %}" class="alert-link">Создайте пациента</a>, чтобы начать.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Легенда -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-info-circle"></i>
+                    Типы диагнозов для тестирования
+                </h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="p-2 border-start border-success border-3">
+                            <strong class="text-success">📗 Хорошие диагнозы</strong>
+                            <ul class="small mb-0 mt-1">
+                                <li>Полная документация</li>
+                                <li>Корректный код МКБ-10</li>
+                                <li>Детальное обследование</li>
+                                <li>Полный план лечения</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-2 border-start border-danger border-3">
+                            <strong class="text-danger">📕 Плохие диагнозы</strong>
+                            <ul class="small mb-0 mt-1">
+                                <li>Неправильный код МКБ-10</li>
+                                <li>Несоответствие диагноза клинике</li>
+                                <li>Недооценка тяжести</li>
+                                <li>Противоречия в данных</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-2 border-start border-warning border-3">
+                            <strong class="text-warning">📙 Неполные диагнозы</strong>
+                            <ul class="small mb-0 mt-1">
+                                <li>Отсутствует план обследования</li>
+                                <li>Поверхностный анамнез</li>
+                                <li>Нет назначений</li>
+                                <li>Неполный осмотр</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Подсветка строк в зависимости от наличия AI проверки
+    document.addEventListener('DOMContentLoaded', function() {
+        const rows = document.querySelectorAll('#recordsTable tbody tr');
+        rows.forEach(row => {
+            const aiCheck = row.querySelector('.badge.bg-success');
+            if (aiCheck) {
+                row.classList.add('table-success');
+            }
+        });
+    });
+</script>
+{% endblock %}

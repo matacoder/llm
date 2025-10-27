@@ -31,6 +31,24 @@ def patient_list(request):
 
 
 @login_required
+def records_table(request):
+    """Таблица всех медицинских записей"""
+    records = MedicalRecord.objects.select_related('patient', 'doctor').all().order_by('-visit_date')
+
+    # Статистика
+    total_records = records.count()
+    checked_records = records.filter(ai_check_performed=True).count()
+    unique_patients = records.values('patient').distinct().count()
+
+    return render(request, 'medical/records_table.html', {
+        'records': records,
+        'total_records': total_records,
+        'checked_records': checked_records,
+        'unique_patients': unique_patients,
+    })
+
+
+@login_required
 def patient_detail(request, patient_id):
     """Карточка пациента с историей болезни"""
     patient = get_object_or_404(Patient, id=patient_id)
