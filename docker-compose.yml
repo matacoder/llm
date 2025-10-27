@@ -10,9 +10,11 @@ services:
       - ollama_data:/root/.ollama  # Именованный volume для надежности
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - OLLAMA_HOST=0.0.0.0
     networks:
       - llm-network
+    runtime: nvidia  # Используем nvidia runtime напрямую
     deploy:
       resources:
         reservations:
@@ -80,6 +82,29 @@ services:
       - open-webui
     networks:
       - llm-network
+
+  # Django Doctor Workspace
+  doctor-workspace:
+    build: ./doctor-workspace
+    container_name: doctor-workspace
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./doctor-workspace:/app
+      - ./.env:/app/.env
+    environment:
+      - OPENWEBUI_API_URL=http://open-webui:8080/api/chat/completions
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+      - OPENWEBUI_KNOWLEDGE_ID=${OPENWEBUI_KNOWLEDGE_ID}
+    depends_on:
+      - open-webui
+    networks:
+      - llm-network
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
 
 networks:
   llm-network:

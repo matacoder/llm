@@ -1,0 +1,45 @@
+{% extends 'medical/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Рабочее место врача</h2>
+        <p class="lead">Последние пациенты</p>
+    </div>
+</div>
+
+<div class="row">
+    {% if patients %}
+        {% for patient in patients %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-person"></i>
+                        {{ patient.full_name }}
+                    </h5>
+                    <p class="card-text">
+                        <small class="text-muted">
+                            Дата рождения: {{ patient.birth_date|date:"d.m.Y" }}<br>
+                            Телефон: {{ patient.phone }}
+                        </small>
+                    </p>
+                    <a href="{% url 'patient_detail' patient.id %}" class="btn btn-primary btn-sm">
+                        Открыть карту
+                    </a>
+                    <a href="{% url 'medical_record_create' patient.id %}" class="btn btn-success btn-sm">
+                        Новый прием
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Нет пациентов. <a href="{% url 'patient_create' %}">Создать нового пациента</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

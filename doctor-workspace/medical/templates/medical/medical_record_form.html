@@ -1,0 +1,206 @@
+{% extends 'medical/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>{{ title }}</h2>
+        <p class="text-muted">Пациент: {{ patient.full_name }}</p>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Основная информация -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация о приеме</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {{ form.visit_date.label_tag }}
+                        {{ form.visit_date }}
+                        {% if form.visit_date.errors %}
+                        <div class="text-danger">{{ form.visit_date.errors }}</div>
+                        {% endif %}
+                    </div>
+                    {{ form.patient.as_hidden }}
+                </div>
+            </div>
+
+            <!-- Жалобы и анамнез -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Жалобы и анамнез</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {{ form.complaints.label_tag }}
+                        {{ form.complaints }}
+                        {% if form.complaints.errors %}
+                        <div class="text-danger">{{ form.complaints.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.anamnesis.label_tag }}
+                        {{ form.anamnesis }}
+                        {% if form.anamnesis.errors %}
+                        <div class="text-danger">{{ form.anamnesis.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.anamnesis_vitae.label_tag }}
+                        {{ form.anamnesis_vitae }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Объективный осмотр -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Объективный осмотр</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.temperature.label_tag }}
+                            {{ form.temperature }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.blood_pressure.label_tag }}
+                            {{ form.blood_pressure }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.pulse.label_tag }}
+                            {{ form.pulse }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.respiratory_rate.label_tag }}
+                            {{ form.respiratory_rate }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.objective_status.label_tag }}
+                        {{ form.objective_status }}
+                        {% if form.objective_status.errors %}
+                        <div class="text-danger">{{ form.objective_status.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Диагноз -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Диагноз</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {{ form.preliminary_diagnosis.label_tag }}
+                        {{ form.preliminary_diagnosis }}
+                        {% if form.preliminary_diagnosis.errors %}
+                        <div class="text-danger">{{ form.preliminary_diagnosis.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.icd10_code.label_tag }}
+                        {{ form.icd10_code }}
+                        {% if form.icd10_code.errors %}
+                        <div class="text-danger">{{ form.icd10_code.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.final_diagnosis.label_tag }}
+                        {{ form.final_diagnosis }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- План обследования и лечения -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">План обследования и лечения</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {{ form.examination_plan.label_tag }}
+                        {{ form.examination_plan }}
+                        {% if form.examination_plan.errors %}
+                        <div class="text-danger">{{ form.examination_plan.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.treatment_plan.label_tag }}
+                        {{ form.treatment_plan }}
+                        {% if form.treatment_plan.errors %}
+                        <div class="text-danger">{{ form.treatment_plan.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.prescriptions.label_tag }}
+                        {{ form.prescriptions }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.recommendations.label_tag }}
+                        {{ form.recommendations }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="bi bi-save"></i> Сохранить
+                    </button>
+                    <a href="{% url 'patient_detail' patient.id %}" class="btn btn-secondary btn-lg">
+                        Отмена
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая колонка - подсказки -->
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        Подсказки
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <small>
+                        <p><strong>Заполните все обязательные поля:</strong></p>
+                        <ul>
+                            <li>Жалобы пациента</li>
+                            <li>Анамнез заболевания</li>
+                            <li>Объективный статус</li>
+                            <li>Предварительный диагноз</li>
+                            <li>Код МКБ-10</li>
+                            <li>План обследования</li>
+                            <li>План лечения</li>
+                        </ul>
+
+                        <p class="mt-3">
+                            <i class="bi bi-robot text-primary"></i>
+                            После сохранения вы сможете воспользоваться AI-помощником для проверки соответствия вашего заключения клиническим рекомендациям.
+                        </p>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

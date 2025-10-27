@@ -1,0 +1,59 @@
+{% extends 'medical/base.html' %}
+
+{% block title %}Список пациентов{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Список пациентов</h2>
+            <a href="{% url 'patient_create' %}" class="btn btn-success">
+                <i class="bi bi-person-plus"></i> Новый пациент
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if patients %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ФИО</th>
+                                    <th>Дата рождения</th>
+                                    <th>Пол</th>
+                                    <th>Телефон</th>
+                                    <th>СНИЛС</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for patient in patients %}
+                                <tr>
+                                    <td>{{ patient.full_name }}</td>
+                                    <td>{{ patient.birth_date|date:"d.m.Y" }}</td>
+                                    <td>{{ patient.get_gender_display }}</td>
+                                    <td>{{ patient.phone }}</td>
+                                    <td>{{ patient.snils }}</td>
+                                    <td>
+                                        <a href="{% url 'patient_detail' patient.id %}" class="btn btn-sm btn-primary">
+                                            Открыть
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Список пациентов пуст</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

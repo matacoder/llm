@@ -1,0 +1,294 @@
+{% extends 'medical/base.html' %}
+
+{% block title %}Медицинская карта - {{ record.patient.full_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Медицинская карта</h2>
+            <div>
+                <a href="{% url 'patient_detail' record.patient.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> К пациенту
+                </a>
+                <a href="{% url 'medical_record_update' record.id %}" class="btn btn-warning">
+                    <i class="bi bi-pencil"></i> Редактировать
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Левая колонка - основная информация -->
+    <div class="col-lg-8">
+        <!-- Информация о приеме -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Информация о приеме</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Пациент:</dt>
+                    <dd class="col-sm-9">{{ record.patient.full_name }}</dd>
+
+                    <dt class="col-sm-3">Врач:</dt>
+                    <dd class="col-sm-9">{{ record.doctor.full_name }} ({{ record.doctor.specialty }})</dd>
+
+                    <dt class="col-sm-3">Дата приема:</dt>
+                    <dd class="col-sm-9">{{ record.visit_date|date:"d.m.Y H:i" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Жалобы и анамнез -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Жалобы и анамнез</h5>
+            </div>
+            <div class="card-body">
+                <h6>Жалобы:</h6>
+                <p class="text-muted">{{ record.complaints }}</p>
+
+                <h6>Анамнез заболевания:</h6>
+                <p class="text-muted">{{ record.anamnesis }}</p>
+
+                {% if record.anamnesis_vitae %}
+                <h6>Анамнез жизни:</h6>
+                <p class="text-muted">{{ record.anamnesis_vitae }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Объективный осмотр -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Объективный осмотр</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-6">Температура:</dt>
+                            <dd class="col-sm-6">{{ record.temperature|default:"-" }} °C</dd>
+
+                            <dt class="col-sm-6">АД:</dt>
+                            <dd class="col-sm-6">{{ record.blood_pressure|default:"-" }}</dd>
+
+                            <dt class="col-sm-6">Пульс:</dt>
+                            <dd class="col-sm-6">{{ record.pulse|default:"-" }} уд/мин</dd>
+
+                            <dt class="col-sm-6">ЧДД:</dt>
+                            <dd class="col-sm-6">{{ record.respiratory_rate|default:"-" }} в мин</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <h6>Объективный статус:</h6>
+                <p class="text-muted">{{ record.objective_status }}</p>
+            </div>
+        </div>
+
+        <!-- Диагноз -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Диагноз</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Предварительный:</dt>
+                    <dd class="col-sm-9">{{ record.preliminary_diagnosis }}</dd>
+
+                    <dt class="col-sm-3">Код МКБ-10:</dt>
+                    <dd class="col-sm-9"><span class="badge bg-secondary">{{ record.icd10_code }}</span></dd>
+
+                    {% if record.final_diagnosis %}
+                    <dt class="col-sm-3">Окончательный:</dt>
+                    <dd class="col-sm-9">{{ record.final_diagnosis }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <!-- План обследования и лечения -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">План обследования и лечения</h5>
+            </div>
+            <div class="card-body">
+                <h6>План обследования:</h6>
+                <p class="text-muted">{{ record.examination_plan }}</p>
+
+                <h6>План лечения:</h6>
+                <p class="text-muted">{{ record.treatment_plan }}</p>
+
+                {% if record.prescriptions %}
+                <h6>Назначения/Рецепты:</h6>
+                <p class="text-muted">{{ record.prescriptions }}</p>
+                {% endif %}
+
+                {% if record.recommendations %}
+                <h6>Рекомендации пациенту:</h6>
+                <p class="text-muted">{{ record.recommendations }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Правая колонка - AI проверка -->
+    <div class="col-lg-4">
+        <div class="card sticky-top" style="top: 20px;">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-robot"></i>
+                    Поддержка принятия решения
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Блок с результатом проверки -->
+                <div id="ai-result-container">
+                    {% if record.ai_check_performed %}
+                        <div id="ai-timestamp" class="alert alert-info">
+                            <small>Последняя проверка: {{ record.ai_check_timestamp|date:"d.m.Y H:i" }}</small>
+                        </div>
+
+                        <div id="ai-result-display" class="ai-result">
+                            {{ record.ai_check_result|linebreaks }}
+                        </div>
+                    {% else %}
+                        <p id="ai-initial-text" class="text-muted">
+                            Нажмите кнопку для проверки соответствия заключения клиническим рекомендациям.
+                        </p>
+                    {% endif %}
+                </div>
+
+                <!-- Блок для загрузки и стриминга (будет заменять результат) -->
+                <div id="ai-loading" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <p class="mt-2">Анализирую данные...</p>
+                </div>
+
+                <div id="ai-streaming" style="display: none;">
+                    <div class="alert alert-info mb-2">
+                        <small><i class="bi bi-lightning-charge-fill"></i> Генерация ответа...</small>
+                    </div>
+                    <div id="ai-stream-content" class="ai-result" style="white-space: pre-wrap;"></div>
+                </div>
+
+                <div id="ai-error" class="alert alert-danger" style="display: none;"></div>
+
+                <!-- Кнопка проверки -->
+                <button id="ai-check-btn" class="btn btn-primary w-100 mt-3">
+                    {% if record.ai_check_performed %}
+                        <i class="bi bi-arrow-clockwise"></i>
+                        Проверить повторно
+                    {% else %}
+                        <i class="bi bi-search"></i>
+                        Проверить заключение
+                    {% endif %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('ai-check-btn').addEventListener('click', async function() {
+    const button = this;
+    const resultContainer = document.getElementById('ai-result-container');
+    const loading = document.getElementById('ai-loading');
+    const streaming = document.getElementById('ai-streaming');
+    const streamContent = document.getElementById('ai-stream-content');
+    const errorDiv = document.getElementById('ai-error');
+
+    // Скрываем старый результат и ошибки
+    resultContainer.style.display = 'none';
+    errorDiv.style.display = 'none';
+    streaming.style.display = 'none';
+    streamContent.textContent = '';
+
+    // Показываем загрузку
+    button.disabled = true;
+    loading.style.display = 'block';
+
+    try {
+        const response = await fetch("{% url 'ai_check_decision' record.id %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        // Скрываем индикатор загрузки и показываем стриминг
+        loading.style.display = 'none';
+        streaming.style.display = 'block';
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { value, done } = await reader.read();
+
+            if (done) break;
+
+            // Декодируем чанк данных
+            buffer += decoder.decode(value, { stream: true });
+
+            // Обрабатываем SSE сообщения
+            const lines = buffer.split('\n\n');
+            buffer = lines.pop(); // Сохраняем незавершенную часть
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+
+                        if (data.token) {
+                            // Добавляем токен к контенту
+                            streamContent.textContent += data.token;
+                            // Автопрокрутка вниз
+                            streamContent.scrollTop = streamContent.scrollHeight;
+                        } else if (data.done) {
+                            // Стриминг завершен
+                            streaming.querySelector('.alert').innerHTML =
+                                '<small><i class="bi bi-check-circle-fill"></i> Готово!</small>';
+                            streaming.querySelector('.alert').classList.remove('alert-info');
+                            streaming.querySelector('.alert').classList.add('alert-success');
+                            button.disabled = false;
+
+                            // Обновляем страницу через 1 секунду
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        } else if (data.error) {
+                            // Ошибка - показываем на месте результата
+                            streaming.style.display = 'none';
+                            errorDiv.textContent = 'Ошибка: ' + data.error;
+                            errorDiv.style.display = 'block';
+                            button.disabled = false;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing SSE data:', e);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        loading.style.display = 'none';
+        streaming.style.display = 'none';
+        button.disabled = false;
+        errorDiv.textContent = 'Ошибка при выполнении запроса: ' + error.message;
+        errorDiv.style.display = 'block';
+    }
+});
+</script>
+{% endblock %}
